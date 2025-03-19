@@ -2,9 +2,13 @@
 import { RouterLink, RouterView } from 'vue-router'
 import HelloWorld from './components/HelloWorld.vue'
 import MainPage from './components/MainPage.vue'
+import Header from './components/Header.vue';
 </script>
 
-<template>
+<template >
+  <!-- <Header></Header> -->
+  <!-- <header style="width: 100%; background-color: aliceblue;">Hello World</header> -->
+  <RouterView />
   <!-- <header> -->
     <!-- <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" /> -->
 
@@ -19,7 +23,7 @@ import MainPage from './components/MainPage.vue'
     <!-- </div> -->
   <!-- </header> -->
 
-  <RouterView />
+  
 </template>
 
 <style scoped>
@@ -84,4 +88,5 @@ nav a:first-of-type {
     margin-top: 1rem;
   }
 }
+
 </style>

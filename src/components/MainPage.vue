@@ -32,7 +32,8 @@
             let data = {
                     x: new Date(datetime.slice(0, -4)),
                     y: temp,
-                    id: id
+                    id: id,
+                    idSensor: idSensor
             }
             if (idSensor !== null){
                 if(!groupedMap.has(idSensor)){
@@ -90,7 +91,7 @@
     async function getDataForChart(){
         console.log('request for update chart')
         let jsonData = new Map()
-        jsonData.set("idCompany", '0')
+        jsonData.set("idCompany", '1')
         jsonData = JSON.stringify(Object.fromEntries(jsonData))
         await fetch(`http://10.5.5.10:5000/getData`, {
             method: "POST", 
@@ -103,7 +104,7 @@
         .then(response =>  response.json())
         .then((response) => {
             if (response){
-                console.log('render chart')
+                console.log('render from getDataForChart')
                 console.log('response', response)
                 rerender(response) 
             } else console.log('Ошибка при получении запроса')
@@ -168,13 +169,13 @@
         })
     }
 
-    async function getImage(datasetIndex, dataIndex) {
+    async function getImage(idSensor, dataIndex) {
         console.log('request for get image')
         let jsonData = new Map()
         jsonData.set('idCompany', '1')
-        jsonData.set('idSensor', datasetIndex) 
+        jsonData.set('idSensor', idSensor) 
         jsonData.set('idRecord', dataIndex)
-        console.log('data', datasetIndex, dataIndex)
+        console.log('data', idSensor, dataIndex)
         jsonData = JSON.stringify(Object.fromEntries(jsonData))
         console.log('json', jsonData)
         await fetch(`http://10.5.5.10:5000/getImage`, { 

@@ -28,7 +28,7 @@
 
 <template>
     <div class="device-list">
-        <span class="style-text">Группа 1</span>
+        <span class="style-text">Датчики</span>
         <hr class="group-line">
         <div class="scrollabe-elem">
             <table>

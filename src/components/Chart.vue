@@ -88,10 +88,10 @@ const options = {
     }
   },
   onClick: (event, elements) => {
-    let datasetIndex = elements[0].datasetIndex
+    let idSensor = elements[0].element.$context.raw.idSensor
     let dataIndex = elements[0].element.$context.raw.id
-    console.log('chart point click', datasetIndex, dataIndex)
-    emit('dataFromPoint', datasetIndex, dataIndex)
+    console.log('chart point click', idSensor, dataIndex)
+    emit('dataFromPoint', idSensor, dataIndex)
   },
   plugins:{
     legend:{

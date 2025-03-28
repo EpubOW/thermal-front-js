@@ -18,7 +18,7 @@ import {
   import 'chartjs-adapter-moment'
   import 'chartjs-plugin-annotation'
   import { ref, useTemplateRef, onMounted, nextTick, defineExpose } from 'vue';
-  
+  import { useDeviceStatusStore } from '@/stores/deviceStatusStore';
   
   ChartJS.register(
     CategoryScale,
@@ -38,22 +38,27 @@ import {
 }
 
 const emit = defineEmits(['inFocus', 'submit'])
-
 function printVal(context){
     console.log(context)
 }
+let chartRef = useTemplateRef('chartRef');
+defineExpose({ chartRef, updateThresholds })
+const deviceStatusStore = useDeviceStatusStore()
 
-function updateThresholds(thresholdYellow, thresholdRed){
+onMounted(async () => {
+  await nextTick()
+  updateThresholds()
+})
+
+async function updateThresholds(){
+  await deviceStatusStore.getChartThresholdsFromDB()
   let annotations = chartRef.value.chart.options.plugins.annotation.annotations
-  annotations.greenBox.yMax = thresholdYellow
-  annotations.yellowBox.yMin = thresholdYellow
-  annotations.yellowBox.yMax = thresholdRed
-  annotations.redBox.yMin = thresholdRed
+  annotations.greenBox.yMax = deviceStatusStore.getChartThresholds.get('threshold_yellow')
+  annotations.yellowBox.yMin = deviceStatusStore.getChartThresholds.get('threshold_yellow')
+  annotations.yellowBox.yMax = deviceStatusStore.getChartThresholds.get('threshold_red')
+  annotations.redBox.yMin = deviceStatusStore.getChartThresholds.get('threshold_red')
   chartRef.value.chart.update()
 }
-
-// let threshold_yellow = deviceStatusStore.getChartThresholds.get('threshold_yellow')
-// let threshold_red = deviceStatusStore.getChartThresholds.get('threshold_red')
 
 function toNormalDate(date){
     return new Intl.DateTimeFormat('ru-RU', {
@@ -88,10 +93,13 @@ const options = {
     }
   },
   onClick: (event, elements) => {
-    let idSensor = elements[0].element.$context.raw.idSensor
-    let dataIndex = elements[0].element.$context.raw.id
-    console.log('chart point click', idSensor, dataIndex)
-    emit('dataFromPoint', idSensor, dataIndex)
+    // printVal(elements[0].index)
+    const idSensor = elements[0].element.$context.raw.idSensor
+    const id = elements[0].element.$context.raw.id
+    const index = elements[0].index
+    const datasetIndex = elements[0].datasetIndex
+    console.log('chart point click', idSensor, id, datasetIndex, index)
+    emit('getImage', idSensor, id, datasetIndex, index)
   },
   plugins:{
     legend:{
@@ -105,9 +113,11 @@ const options = {
               return date
           },
           label: function(context) {
-              // printVal(context.dataset)
-              return `${context.dataset.label}: ${context.raw.y} C° `;
-          }
+            return `${context.dataset.label}`;
+          },
+          afterLabel: function(context){
+            return `Температура: ${context.raw.y} C°\nДатчик: ${context.raw.idSensor}`
+          },
       }
     },
     annotation: {
@@ -137,8 +147,6 @@ const options = {
   }      
 }
 
-let chartRef = useTemplateRef('chartRef');
-defineExpose({ chartRef, updateThresholds })
 // let chartRef = ref(null)
 
 // onMounted(async () => {

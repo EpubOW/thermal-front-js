@@ -21,7 +21,7 @@
     }
     function changeDeviceValue (key, oldLabel, label){
         deviceStatusStore.changeDeviceStatusLabel(key, label)
-        emit('updateChartLabels', key, oldLabel, label)
+        emit('updateChartLabels', key, oldLabel, label) //dont work
     }
 
 </script>
@@ -33,7 +33,7 @@
         <div class="scrollabe-elem">
             <table>
                 <tbody>
-                    <tr v-for="([key, value], index) in deviceStatusStore.statusesMapDevice()">
+                    <tr v-for="([key, value], index) in deviceStatusStore.getTempStatuses">
                         <td>
                             <!-- ? text or number ? -->
                             <input type="text" 
@@ -118,6 +118,7 @@ td{
     max-height: 70%;
     border-radius: 10px;
     background-color: #f2f2f2;
+    min-width: 120px;
 }
 .dev-name{
     border: 2px #cecece solid;

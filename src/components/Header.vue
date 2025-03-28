@@ -1,6 +1,6 @@
 <script setup>
 
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onBeforeMount } from 'vue';
 import { useDeviceStatusStore } from '@/stores/deviceStatusStore';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/userStore';
@@ -41,7 +41,6 @@ onMounted(() => {
     <div class="header">
         <img class="logo" src="@/assets/TVR_vr1.png" alt="">
         <span class="title style-text">Мониторинг температуры</span>
-        <!-- <div class="spacer"></div> -->
         <div class="indicators">
             <div id="green_ind" class="ind_box">
                 <div>{{ deviceStatusStore.normalDeviceStatus() }}</div>
@@ -52,21 +51,12 @@ onMounted(() => {
             <div id="red_ind" class="ind_box">
                 <div>{{ deviceStatusStore.dangerDeviceStatus() }}</div>
             </div>
-            <!-- <div class="spacer"></div> -->
         </div>
             <select @change="moveToPage" class="user-info style-text" name="" id="">
                 <option value="0" disabled selected>{{ userStore.getUsername }}</option>
                 <option :value="mainOrAccountSource">{{ mainOrAccountName }}</option>
                 <option value="/">Выйти</option>
             </select>
-            
-            <!-- <button class="btn">
-                <span class="style-text">Пользователь</span>
-            </button>
-            <ul class="user-info style-text">
-                <li></li>
-                <li></li>
-            </ul> -->
     </div>
     
 

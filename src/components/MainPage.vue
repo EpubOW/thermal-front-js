@@ -1,56 +1,39 @@
 <script setup> 
-    import { ref, useTemplateRef, onMounted, nextTick } from 'vue';
+    import { ref, useTemplateRef, onMounted, nextTick, onBeforeMount } from 'vue';
     import { useDeviceStatusStore } from '@/stores/deviceStatusStore';
+    import { useCounterStore } from '@/stores/counter';
+    import { useUserStore } from '@/stores/userStore';
     import DeviceList from './DevicesList.vue';
     import Chart from './Chart.vue';
     import Header from './Header.vue';
     import imagePlaceholder from '@/assets/push-to-point-img.jpg'
+    import thermoTestImage from '@/assets/thermo-image.jpg'
 
     const deviceStatusStore = useDeviceStatusStore()
+    const userStore = useUserStore()
     const updateTime = 60000; //milliseconds
     let tempChart = useTemplateRef('tempChart');
     let imageSrc = ref(imagePlaceholder)
+    const workMode = userStore.getWorkMode 
+    let imageDataInfo = []
 
-    onMounted(async () => {
-        await nextTick() // ждём отрисовки графика
-        // addToStore() // добавляем фейковые данные
-        await deviceStatusStore.getChartThresholdsFromDB() // ждём границы температурных боксов для графика
-        tempChart.value.updateThresholds( // обновляем границы температурных боксов для графика
-            deviceStatusStore.getChartThresholds.get('threshold_yellow'), 
-            deviceStatusStore.getChartThresholds.get('threshold_red')
-        )
-
-        getDataForChart() // взятие данных из БД
-        devicesSurvey() // таймер на обновление графика
+    onBeforeMount(async () => {
+        await deviceStatusStore.basicDeviceSetup()
     })
 
-    function rerender(dataset){
-        console.log('chart datasets', tempChart.value.chartRef.chart.data.datasets)
+    onMounted(async () => {
+        nextTick().then(() => {
+            rerender()
+            // console.log()
+            // tempChart.value.updateThresholds( // обновляем границы температурных боксов для графика
+            //     deviceStatusStore.getChartThresholds.get('threshold_yellow'), 
+            //     deviceStatusStore.getChartThresholds.get('threshold_red')
+            // )
+        })
+    })
 
-        let groupedMap = new Map()
-        for (const [id, idSensor, temp, datetime, label] of dataset) {
-            let data = {
-                    x: new Date(datetime.slice(0, -4)),
-                    y: temp,
-                    id: id,
-                    idSensor: idSensor
-            }
-            if (idSensor !== null){
-                if(!groupedMap.has(idSensor)){
-                    groupedMap.set(idSensor, {label: label, data: []})
-                }
-                if (!deviceStatusStore.allDevices.has(idSensor)) {
-                    deviceStatusStore.addDevice(idSensor);
-                }                
-                groupedMap.get(idSensor)['data'].push(data)
-                // deviceStatusStore.updateDeviceTemp(id, data)
-                
-                // groupedMap.get(id).push({x: new Date(datetime.slice(0, -4)), y: temp})
-            }
-        }
-        groupedMap.forEach((value, key) => {
-            deviceStatusStore.updateDeviceTemp(key, value)
-            // deviceStatusStore.updateDeviceStatusTemp(key, value[0]['y'])
+    function rerender(){
+        deviceStatusStore.allDevices.forEach((value, key) => {
             try{
                 let dataset = getChartDatasetByLabel(value['label'])
                 console.log('label', value)
@@ -88,63 +71,18 @@
         return dataset
     }
 
-    async function getDataForChart(){
-        console.log('request for update chart')
-        let jsonData = new Map()
-        jsonData.set("idCompany", '1')
-        jsonData = JSON.stringify(Object.fromEntries(jsonData))
-        await fetch(`http://10.5.5.10:5000/getData`, {
-            method: "POST", 
-            cors: "no-cors",
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8',
-            },
-            body: jsonData
-        })
-        .then(response =>  response.json())
-        .then((response) => {
-            if (response){
-                console.log('render from getDataForChart')
-                console.log('response', response)
-                rerender(response) 
-            } else console.log('Ошибка при получении запроса')
-        })
-    }
-
-    function addToStore(){
-        let data = [
-            [0, 0, 28.2, '2025-02-13 09:50:26.923254', 'label'],
-            [1, 0, 30.2, '2025-02-13 09:50:27.923254', 'label'],
-            [2, 0, 32.2, '2025-02-13 09:50:28.923254', 'label'],
-            [3, 0, 34.2, '2025-02-13 09:50:29.923254', 'label'],
-            [4, 0, 36.2, '2025-02-13 09:50:30.923254', 'label'],
-            [5, 0, 38.2, '2025-02-13 09:50:31.923254', 'label'],
-            [6, 0, 40.2, '2025-02-13 09:50:32.923254', 'label'],
-            [7, 0, 42.2, '2025-02-13 09:50:33.923254', 'label'],
-            [8, 1, 44.2, '2025-02-13 09:50:26.923254', 'label1'],
-            [9, 1, 46.2, '2025-02-13 09:50:27.923254', 'label1'],
-            [10, 1, 48.2, '2025-02-13 09:50:28.923254', 'label1'],
-            [11, 1, 50.2, '2025-02-13 09:50:29.923254', 'label1'],
-            [12, 1, 52.2, '2025-02-13 09:50:30.923254', 'label1'],
-            [13, 1, 54.2, '2025-02-13 09:50:31.923254', 'label1'],
-            [14, 1, 56.2, '2025-02-13 09:50:32.923254', 'label1'],
-            [15, 1, 58.2, '2025-02-13 09:50:33.923254', 'label1'],
-            [16, 1, 60.2, '2025-02-13 09:50:34.923254', 'label1'],
-        ]
-        rerender(data)
-    }
-
     function updateChartLabels(key, oldLabel, label){
         console.log('kl', key, oldLabel, label)   
         let dataset = getChartDatasetByLabel(oldLabel)
         dataset.label = label
+        deviceStatusStore.setTempStatuses()
         updateChart()
     }
 
     async function updateLabels(){
         console.log('request for update label')
         let jsonData = new Map()
-        jsonData.set('idCompany', '1')
+        jsonData.set("idCompany", userStore.getIdCompany)
         let idSensors = {}
         deviceStatusStore.devices.forEach((value, key) => {
             idSensors[key] = value.label
@@ -152,7 +90,7 @@
         jsonData.set('idSensors', idSensors)
         jsonData = JSON.stringify(Object.fromEntries(jsonData))
         console.log('json', jsonData)
-        await fetch(`http://10.5.5.10:5000/updateLabels`, { 
+        await fetch(`http://${userStore.ipAddress}:5000/updateLabels`, { 
             method: "POST", 
             cors: "no-cors",
             headers: {
@@ -169,16 +107,16 @@
         })
     }
 
-    async function getImage(idSensor, dataIndex) {
+    async function getImage(idSensor, id, datasetIndex, index) {
         console.log('request for get image')
         let jsonData = new Map()
-        jsonData.set('idCompany', '1')
+        jsonData.set("idCompany", userStore.getIdCompany)
         jsonData.set('idSensor', idSensor) 
-        jsonData.set('idRecord', dataIndex)
-        console.log('data', idSensor, dataIndex)
+        jsonData.set('idRecord', id)
+        console.log('data', idSensor, id)
         jsonData = JSON.stringify(Object.fromEntries(jsonData))
         console.log('json', jsonData)
-        await fetch(`http://10.5.5.10:5000/getImage`, { 
+        await fetch(`http://${userStore.ipAddress}:5000/getImage`, { 
             method: "POST", 
             cors: "no-cors",
             headers: {
@@ -190,18 +128,24 @@
         .then((response) => {
             if (response){
                 console.log('response getImage', response)
+                imageSrc.value = thermoTestImage // временно
+                imageDataInfo = [datasetIndex, index] // убрать в проверку
                 if (response['status'] == true){
                     imageSrc.value = `data:image/jpeg;base64,${response['image']}`
-                    console.log(imageSrc)
                 }
             } else console.log('Ошибка при получении запроса')
         })
     }
 
-    async function devicesSurvey(){
-        console.log('start interval for updating chart')
-        let timer = setInterval(getDataForChart, updateTime)
+    async function nextPrevImage(movementDirection){
+        const nextPoint = tempChart.value.chartRef.chart.data.datasets[imageDataInfo[0]].data[imageDataInfo[1] + movementDirection]
+        if (nextPoint){
+            await getImage(nextPoint.idSensor, nextPoint.id, imageDataInfo[0], imageDataInfo[1] + movementDirection)
+        }
+        console.log('next/prev', movementDirection, imageDataInfo)
     }
+
+    
 
 
 </script>
@@ -213,11 +157,33 @@
         <DeviceList @update-labels="updateLabels" @update-chart-labels="updateChartLabels" />
         <div class="chart-container">
             <div>
-                <Chart @data-from-point="getImage" ref="tempChart"></Chart>  
+                <Chart @get-image="getImage" ref="tempChart"></Chart>  
             </div>
             <div class="img-holder">
                 <img :src="imageSrc" alt="">
-                <!-- <button @click="getImage()">Получить картинку</button> -->
+                <button 
+                    id="close-image"
+                    class="image-button"
+                    :class="[imageSrc == imagePlaceholder ? 'hidden' : '']"
+                    @click="imageSrc = imagePlaceholder; imageDataInfo = []">
+                    <span>X</span>
+                </button>
+                <button
+                    id="next-image"
+                    class="image-button"
+                    :class="[imageSrc == imagePlaceholder ? 'hidden' : '']"
+                    @click="nextPrevImage(1)"
+                    >
+                    <span>></span>
+                </button>
+                <button
+                    id="prev-image"
+                    class="image-button"
+                    :class="[imageSrc == imagePlaceholder ? 'hidden' : '']"
+                    @click="nextPrevImage(-1)"
+                    >
+                    <span><</span>
+                </button>
             </div>          
         </div>
     </div>
@@ -246,10 +212,43 @@
     width: 323px; 
     height: 242px; 
     border: 2px solid black;
+    position: relative;
     /* position: absolute;
     top: 10px;
     right: -320px; */
 }
+.hidden{
+    display: none;
+}
+.image-button{
+    position: absolute;
+    margin: 5px;
+    border-radius: 3px;
+    border: none;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.6);
+    cursor: pointer;
+}
+.image-button:hover{
+    background-color: rgba(0, 0, 0, 0.8);
+}
+#close-image{
+    top: 0;
+    right: 0;
+    padding: 7px;
+}
+#next-image{
+    top: 45%;
+    right: 0;
+    padding: 10px 7px;
+}
+#prev-image{
+    top: 45%;
+    left: 0;
+    padding: 10px 7px;
+}
+
+
 .chart-container {
     display: grid;
     grid-template-columns: auto auto;

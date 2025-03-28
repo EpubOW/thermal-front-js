@@ -8,14 +8,6 @@ const login = ref('')
 const password = ref('')
 const userStore = useUserStore()
 
-// function loginFunc() {
-//     if (login.value === 'a' && password.value === 'a') { 
-//         router.push('/home')
-//     } else {
-//         alert('Неверный логин или пароль')
-//     }
-// }
-
 async function loginFunc() {
     console.log('request for autorization')
     let jsonData = new Map()
@@ -23,7 +15,7 @@ async function loginFunc() {
     jsonData.set('password', password.value) 
     jsonData = JSON.stringify(Object.fromEntries(jsonData))
     console.log('json', jsonData)
-    await fetch(`http://10.5.5.10:5000/login`, { 
+    await fetch(`http://${userStore.ipAddress}:5000/login`, { 
         method: "POST", 
         cors: "no-cors",
         headers: {
@@ -39,7 +31,15 @@ async function loginFunc() {
                 userStore.setToken(response['token'])
                 console.log('token', userStore.getToken)
                 userStore.setAuthorizedStatus()
+
                 userStore.setUsername(response['username'])
+                userStore.setIdCompany(response['query'][1])
+
+                localStorage.setItem('authToken', response['token'])
+                localStorage.setItem('username', response['username'])
+                localStorage.setItem('idCompany', response['query'][1])
+
+                console.log('reses', response['query'])
                 router.push('/home')
             }
             else {

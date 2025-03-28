@@ -2,12 +2,16 @@
 import Header from './Header.vue';
 import { useDeviceStatusStore } from '@/stores/deviceStatusStore';
 import { useUserStore } from '@/stores/userStore';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, onBeforeMount } from 'vue';
 
 const deviceStatusStore = useDeviceStatusStore()
 const userStore = useUserStore()
 let threshold_yellow = ref('')
 let threshold_red = ref('')
+
+onBeforeMount(async () => {
+    await deviceStatusStore.basicDeviceSetup()
+})
 
 deviceStatusStore.getChartThresholdsFromDB().then(() => {
     threshold_yellow.value = deviceStatusStore.getChartThresholds.get('threshold_yellow')
@@ -15,6 +19,14 @@ deviceStatusStore.getChartThresholdsFromDB().then(() => {
 })
 
 function saveInfo(){
+    if (threshold_yellow.value >= threshold_red.value){
+        alert('Пороги температуры заданы неверно')
+        return
+    }
+    if (threshold_red.value === '' || threshold_yellow.value === '') {
+        alert('Указано пустое значение')
+        return
+    }
     deviceStatusStore.setChartThresholdsToDB(threshold_yellow.value, threshold_red.value)
     console.log('save')
 }
@@ -42,8 +54,8 @@ onMounted(() => {
                     <div class="field red-field"></div>
                 </div>
                 <div class="thresholds-values">
-                    <input class="t-value left-value style-text" type="text" v-model="threshold_yellow">
-                    <input class="t-value right-value style-text" type="text" v-model="threshold_red">
+                    <input class="t-value left-value style-text" type="number" v-model="threshold_yellow">
+                    <input class="t-value right-value style-text" type="number" v-model="threshold_red">
                 </div>
             </div>
             <button type="submit" class="btn style-text">Сохранить</button>
